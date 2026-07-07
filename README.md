@@ -57,8 +57,8 @@ Requires Claude Code ≥ 2.1.139 (built-in `/goal`), Node.js, and an authenticat
 [Codex CLI](https://github.com/openai/codex) (`codex login`).
 
 ```
-/plugin marketplace add <this repo>
-/plugin install codex-goal
+/plugin marketplace add wickedev/codex-goal-plugin-cc
+/plugin install codex-goal@codex-goal-plugin-cc
 ```
 
 ## Use
