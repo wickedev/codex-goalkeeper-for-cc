@@ -1,0 +1,16 @@
+{
+  "description": "Codex goal gate: verifies goal completion against repository state at stop time and steers ambiguous goals.",
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/goal-gate-hook.mjs\"",
+            "timeout": 900
+          }
+        ]
+      }
+    ]
+  }
+}

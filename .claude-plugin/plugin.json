@@ -1,0 +1,8 @@
+{
+  "name": "codex-goal",
+  "version": "0.1.0",
+  "description": "Goal steering for Claude Code: refines ambiguous goals into verifiable criteria, then gates every stop with an independent Codex review until the goal is actually achieved.",
+  "author": {
+    "name": "Ryan"
+  }
+}
