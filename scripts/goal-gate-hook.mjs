@@ -107,14 +107,14 @@ function main() {
     state.status = "stalled";
     writeSessionState(sessionId, pushHistory(state, "stalled", `hit max iterations (${state.maxIterations})`));
     note(
-      `codex-goal: gate hit its iteration limit (${state.maxIterations}) without verifying the goal. ` +
-        `Marked stalled — check /codex-goal:status. Setting a new /goal resets the gate.`
+      `goalkeeper: gate hit its iteration limit (${state.maxIterations}) without verifying the goal. ` +
+        `Marked stalled — check /goalkeeper:status. Setting a new /goal resets the gate.`
     );
     return;
   }
 
   if (!codexAvailable()) {
-    note("codex-goal: codex CLI not found; skipping independent goal verification.");
+    note("goalkeeper: codex CLI not found; skipping independent goal verification.");
     return;
   }
 
@@ -126,14 +126,14 @@ function main() {
 
   if (!judge.ok) {
     writeSessionState(sessionId, pushHistory(state, "judge-error", judge.error));
-    note(`codex-goal: judge failed (${judge.error}); allowing stop. The gate stays active.`);
+    note(`goalkeeper: judge failed (${judge.error}); allowing stop. The gate stays active.`);
     return;
   }
 
   const verdict = parseVerdict(judge.lastMessage);
   if (!verdict) {
     writeSessionState(sessionId, pushHistory(state, "judge-error", "unparseable verdict"));
-    note("codex-goal: judge returned an unexpected answer; allowing stop. The gate stays active.");
+    note("goalkeeper: judge returned an unexpected answer; allowing stop. The gate stays active.");
     return;
   }
 
@@ -143,7 +143,7 @@ function main() {
   if (verdict.kind === "ACHIEVED") {
     state.status = "achieved";
     writeSessionState(sessionId, state);
-    note(`codex-goal: independently verified — ${verdict.detail}`);
+    note(`goalkeeper: independently verified — ${verdict.detail}`);
     return;
   }
 
@@ -161,7 +161,7 @@ function main() {
         },
         {
           header:
-            `Codex goal gate: the goal is too ambiguous to verify as written, so it was ` +
+            `Codex goalkeeper: the goal is too ambiguous to verify as written, so it was ` +
             `refined into checkable criteria. Tell the user it was interpreted this way, ` +
             `then keep working toward it.`,
           includeDirective: false
@@ -184,7 +184,7 @@ function main() {
       },
       {
         header:
-          `Codex goal gate — independent repo-state verification says the goal is NOT achieved yet.`
+          `Codex goalkeeper — independent repo-state verification says the goal is NOT achieved yet.`
       }
     )
   );
@@ -194,6 +194,6 @@ try {
   main();
 } catch (error) {
   const message = error instanceof Error ? error.message : String(error);
-  process.stderr.write(`codex-goal: ${message}\n`);
+  process.stderr.write(`goalkeeper: ${message}\n`);
   process.exitCode = 1;
 }

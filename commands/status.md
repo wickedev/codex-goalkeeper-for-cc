@@ -1,5 +1,5 @@
 ---
-description: Show the codex-goal gate state and the latest Codex verdict
+description: Show the goalkeeper gate state and the latest Codex verdict
 ---
 
 Run:

@@ -16,8 +16,8 @@ function main() {
     writeConfig({ ...config, enabled: command === "on" });
     process.stdout.write(
       command === "on"
-        ? "codex-goal gate enabled. Active built-in /goal conditions will be independently verified by Codex at every stop.\n"
-        : "codex-goal gate disabled. The built-in /goal evaluator still runs; only the Codex verification layer is off.\n"
+        ? "goalkeeper gate enabled. Active built-in /goal conditions will be independently verified by Codex at every stop.\n"
+        : "goalkeeper gate disabled. The built-in /goal evaluator still runs; only the Codex verification layer is off.\n"
     );
     return;
   }

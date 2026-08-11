@@ -1,15 +1,15 @@
 {
-  "name": "codex-goal-plugin-cc",
+  "name": "codex-goalkeeper-for-cc",
   "owner": {
     "name": "Ryan"
   },
   "metadata": {
-    "description": "Codex-verified goal steering plugin for Claude Code.",
+    "description": "Codex-judged goalkeeper for Claude Code's built-in /goal.",
     "version": "0.1.0"
   },
   "plugins": [
     {
-      "name": "codex-goal",
+      "name": "goalkeeper",
       "description": "Goal steering with a Codex-verified stop gate: refine ambiguous goals, keep working until independently verified.",
       "version": "0.1.0",
       "author": {

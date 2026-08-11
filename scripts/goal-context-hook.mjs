@@ -77,7 +77,7 @@ function main() {
         iterations: tracking?.iterations,
         maxIterations: tracking?.maxIterations ?? config.maxIterations
       },
-      { header: "Codex goal gate — this goal is still open:" }
+      { header: "Codex goalkeeper — this goal is still open:" }
     )
   );
 }
@@ -86,6 +86,6 @@ try {
   main();
 } catch (error) {
   const message = error instanceof Error ? error.message : String(error);
-  process.stderr.write(`codex-goal: ${message}\n`);
+  process.stderr.write(`goalkeeper: ${message}\n`);
   process.exitCode = 1;
 }

@@ -1,4 +1,4 @@
-# codex-goal-plugin-cc
+# codex-goalkeeper-for-cc
 
 Independent, repo-state verification for Claude Code's built-in `/goal` command, judged by
 Codex.
@@ -36,7 +36,7 @@ you: /goal all tests in test/auth pass          (built-in command, unchanged)
 Claude works … tries to stop
         │
         ├── built-in evaluator (Haiku, transcript-only)     ─┐  both run in
-        └── codex-goal gate (this plugin, Stop hook)         ─┘  parallel; any
+        └── goalkeeper gate (this plugin, Stop hook)         ─┘  parallel; any
               │                                                  block ⇒ keep working
               ├─ reads transcript_path → finds the active /goal condition
               │    (goal_status entries written by the built-in command)
@@ -47,7 +47,7 @@ Claude works … tries to stop
                    STEER:    <criteria>   → block; goal refined into checkable criteria
 ```
 
-The gate keeps its own per-session state in `~/.claude/codex-goal/` (iteration count,
+The gate keeps its own per-session state in `~/.claude/goalkeeper/` (iteration count,
 refined criteria, verdict history). It stands down when the user runs `/goal clear` (or any
 alias), when Codex confirms the goal, or when the iteration cap is hit.
 
@@ -68,8 +68,8 @@ Requires Claude Code ≥ 2.1.139 (built-in `/goal`), Node.js, and an authenticat
 [Codex CLI](https://github.com/openai/codex) (`codex login`).
 
 ```
-/plugin marketplace add wickedev/codex-goal-plugin-cc
-/plugin install codex-goal@codex-goal-plugin-cc
+/plugin marketplace add wickedev/codex-goalkeeper-for-cc
+/plugin install goalkeeper@codex-goalkeeper-for-cc
 ```
 
 ## Use
@@ -82,13 +82,13 @@ That's it — the gate activates automatically whenever a built-in goal is activ
 
 | Command              | Effect                                              |
 | :------------------- | :-------------------------------------------------- |
-| `/codex-goal:status` | Gate state, tracked goal, iterations, last verdict  |
-| `/codex-goal:off`    | Disable the Codex layer (built-in /goal unaffected) |
-| `/codex-goal:on`     | Re-enable it                                        |
+| `/goalkeeper:status` | Gate state, tracked goal, iterations, last verdict  |
+| `/goalkeeper:off`    | Disable the Codex layer (built-in /goal unaffected) |
+| `/goalkeeper:on`     | Re-enable it                                        |
 
 ## Configuration
 
-- `~/.claude/codex-goal/config.json` — `{"enabled": true, "maxIterations": 8}`.
+- `~/.claude/goalkeeper/config.json` — `{"enabled": true, "maxIterations": 8}`.
   `maxIterations` caps how many times the gate will send Claude back to work per goal;
   after that the goal is marked `stalled` and stops are allowed again.
 - `CODEX_GOAL_SANDBOX` env var — sandbox for the judge (`read-only` default;

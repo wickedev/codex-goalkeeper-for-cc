@@ -10,7 +10,7 @@ export function codexAvailable() {
 
 export function runCodexJudge(cwd, prompt, { timeoutMs, sandbox }) {
   const outFile = path.join(
-    fs.mkdtempSync(path.join(os.tmpdir(), "codex-goal-")),
+    fs.mkdtempSync(path.join(os.tmpdir(), "goalkeeper-")),
     "last-message.txt"
   );
 

@@ -2,11 +2,27 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-const STATE_ROOT = path.join(os.homedir(), ".claude", "codex-goal");
+const STATE_ROOT = path.join(os.homedir(), ".claude", "goalkeeper");
+const LEGACY_STATE_ROOT = path.join(os.homedir(), ".claude", "codex-goal");
 const SESSIONS_DIR = path.join(STATE_ROOT, "sessions");
 const CONFIG_PATH = path.join(STATE_ROOT, "config.json");
 
 export const DEFAULT_MAX_ITERATIONS = 8;
+
+// One-shot migration from the pre-rename location. Best effort: if it fails the
+// gate just starts from a clean state, which is the same as a fresh install.
+function migrateLegacyState() {
+  try {
+    if (fs.existsSync(STATE_ROOT) || !fs.existsSync(LEGACY_STATE_ROOT)) {
+      return;
+    }
+    fs.renameSync(LEGACY_STATE_ROOT, STATE_ROOT);
+  } catch {
+    // ignore
+  }
+}
+
+migrateLegacyState();
 
 export function readConfig() {
   try {
