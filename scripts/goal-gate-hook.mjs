@@ -22,6 +22,7 @@ import {
   writeSessionState
 } from "./lib/state.mjs";
 import { readBuiltinGoal } from "./lib/transcript.mjs";
+import { buildGoalReminder } from "./lib/reminder.mjs";
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const PROMPT_PATH = path.join(SCRIPT_DIR, "..", "prompts", "goal-gate.md");
@@ -148,20 +149,44 @@ function main() {
 
   if (verdict.kind === "STEER") {
     state.refinedCriteria = verdict.detail;
+    state.status = "refuted";
     writeSessionState(sessionId, state);
     block(
-      `Codex goal gate: the goal "${goal.condition}" is too ambiguous to verify as written, ` +
-        `so it was refined into checkable criteria: ${verdict.detail} ` +
-        `Tell the user the goal was interpreted this way, then keep working toward it and ` +
-        `surface concrete evidence (test output, build results) in your responses.`
+      buildGoalReminder(
+        {
+          condition: goal.condition,
+          refinedCriteria: verdict.detail,
+          iterations: state.iterations,
+          maxIterations: state.maxIterations
+        },
+        {
+          header:
+            `Codex goal gate: the goal is too ambiguous to verify as written, so it was ` +
+            `refined into checkable criteria. Tell the user it was interpreted this way, ` +
+            `then keep working toward it.`,
+          includeDirective: false
+        }
+      )
     );
     return;
   }
 
+  state.status = "refuted";
   writeSessionState(sessionId, state);
   block(
-    `Codex goal gate (independent repo-state verification, iteration ${state.iterations}/${state.maxIterations}): ` +
-      `the goal is not achieved yet. ${verdict.detail} Goal: ${goal.condition}`
+    buildGoalReminder(
+      {
+        condition: goal.condition,
+        refinedCriteria: state.refinedCriteria,
+        lastDirective: verdict.detail,
+        iterations: state.iterations,
+        maxIterations: state.maxIterations
+      },
+      {
+        header:
+          `Codex goal gate — independent repo-state verification says the goal is NOT achieved yet.`
+      }
+    )
   );
 }
 

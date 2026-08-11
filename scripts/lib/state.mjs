@@ -44,7 +44,7 @@ export function writeSessionState(sessionId, state) {
 export function newSessionState(condition) {
   return {
     condition,
-    status: "verifying", // verifying | achieved | stalled
+    status: "verifying", // verifying | refuted | achieved | stalled
     iterations: 0,
     refinedCriteria: null,
     history: [{ at: new Date().toISOString(), event: "tracking", detail: condition }],

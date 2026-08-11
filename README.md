@@ -51,6 +51,17 @@ The gate keeps its own per-session state in `~/.claude/codex-goal/` (iteration c
 refined criteria, verdict history). It stands down when the user runs `/goal clear` (or any
 alias), when Codex confirms the goal, or when the iteration cap is hit.
 
+### Re-arming a refuted goal
+
+Blocking a stop only steers the turn that was interrupted. Once the built-in evaluator
+declares a goal met it archives it and stops re-injecting it, so on every *later* user turn
+the goal would be invisible to Claude even though this gate still considers it open. A
+`UserPromptSubmit` hook closes that gap: while a tracked goal is unverified, each prompt gets
+the goal, the refined criteria, and the last `CONTINUE` directive injected as context.
+
+It injects nothing when the goal is `achieved` or `stalled`, when the user cleared it, or
+while the built-in command is still carrying the goal itself (no duplicate reminder).
+
 ## Install
 
 Requires Claude Code ≥ 2.1.139 (built-in `/goal`), Node.js, and an authenticated
@@ -96,7 +107,7 @@ session can never be trapped by the gate itself; the iteration cap bounds the lo
   between versions — verified against v2.1.195. If parsing breaks, the gate silently stands
   down (fail-open), it does not error your session.
 - Both evaluators run in parallel by design. The built-in one may declare the goal met and
-  clear it; this gate keeps blocking until Codex agrees (or the cap is hit), which is the
-  point.
+  archive it; this gate keeps blocking — and keeps re-injecting the goal on later turns —
+  until Codex agrees (or the cap is hit), which is the point.
 - Each verification is a real `codex exec` run (typically 30–90 s per stop while a goal is
   active). Cost scales with how many turns the goal takes.
