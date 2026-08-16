@@ -5,6 +5,10 @@
 // The stop is blocked — Claude keeps working — until Codex confirms the goal,
 // the user runs /goal clear, or the iteration cap is hit.
 //
+// It only judges at judgement time. A Stop that is a parked turn (background
+// work still running) or a continuation this gate itself caused is not a claim
+// of completion, so it costs nothing and passes straight through.
+//
 // Fails open by design: judge errors, timeouts, or a missing codex CLI never
 // trap the session — they log a note and allow the stop.
 
@@ -19,18 +23,32 @@ import {
   pushHistory,
   readConfig,
   readSessionState,
+  resolveJudge,
   writeSessionState
 } from "./lib/state.mjs";
 import { readBuiltinGoal } from "./lib/transcript.mjs";
-import { buildGoalReminder } from "./lib/reminder.mjs";
+import { buildGoalReminder, buildVerifiedAnnouncement } from "./lib/reminder.mjs";
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const PROMPT_PATH = path.join(SCRIPT_DIR, "..", "prompts", "goal-gate.md");
 const JUDGE_TIMEOUT_MS = 10 * 60 * 1000;
-const SANDBOX = process.env.CODEX_GOAL_SANDBOX || "read-only";
+// Consecutive judge failures tolerated before the gate stands down. Without
+// this a judge that is permanently broken (no auth, usage limit) never advances
+// the iteration counter, so the cap that is supposed to end the loop never hits.
+const JUDGE_ERROR_CAP = 3;
 
 function readHookInput() {
   const raw = fs.readFileSync(0, "utf8").trim();
+  // Opt-in capture of the raw Stop payload; the field set is internal to Claude
+  // Code, and this is how you check what a given version actually sends.
+  const debugPath = process.env.GOALKEEPER_DEBUG_INPUT;
+  if (debugPath && raw) {
+    try {
+      fs.appendFileSync(debugPath, `${raw}\n`);
+    } catch {
+      // ignore
+    }
+  }
   return raw ? JSON.parse(raw) : {};
 }
 
@@ -42,6 +60,20 @@ function note(message) {
 
 function block(reason) {
   process.stdout.write(`${JSON.stringify({ decision: "block", reason })}\n`);
+}
+
+// A turn that parks on background work is not claiming the goal is done. Shape
+// of the field is version-internal, so anything non-empty counts as pending and
+// anything unrecognised counts as none.
+function pendingBackgroundWork(input) {
+  const tasks = input.background_tasks;
+  if (Array.isArray(tasks)) {
+    return tasks.length;
+  }
+  if (tasks && typeof tasks === "object") {
+    return Object.keys(tasks).length;
+  }
+  return 0;
 }
 
 function buildPrompt(goal, state, input) {
@@ -88,8 +120,24 @@ function main() {
     return;
   }
 
+  // This stop is the tail of a continuation some Stop hook already forced. The
+  // directive for this turn has been delivered and nothing has been re-verified
+  // since, so re-judging here only stacks blocks.
+  if (input.stop_hook_active) {
+    return;
+  }
+
   const goal = readBuiltinGoal(transcriptPath);
-  if (!goal.condition || goal.userCleared) {
+  if (!goal.condition || goal.userCleared || goal.verified) {
+    return;
+  }
+
+  const pending = pendingBackgroundWork(input);
+  if (pending > 0) {
+    note(
+      `goalkeeper: ${pending} background task(s) still running — parked turn, not a completion ` +
+        `claim. Skipping verification.`
+    );
     return;
   }
 
@@ -119,31 +167,49 @@ function main() {
   }
 
   const cwd = input.cwd || process.env.CLAUDE_PROJECT_DIR || process.cwd();
+  const settings = resolveJudge(config);
   const judge = runCodexJudge(cwd, buildPrompt(goal, state, input), {
     timeoutMs: JUDGE_TIMEOUT_MS,
-    sandbox: SANDBOX
+    sandbox: settings.sandbox.value || "read-only",
+    model: settings.model.value,
+    effort: settings.effort.value
   });
 
-  if (!judge.ok) {
-    writeSessionState(sessionId, pushHistory(state, "judge-error", judge.error));
-    note(`goalkeeper: judge failed (${judge.error}); allowing stop. The gate stays active.`);
+  if (!judge.ok || !parseVerdict(judge.lastMessage)) {
+    const reason = judge.ok ? "unparseable verdict" : judge.error;
+    state.judgeErrors = (state.judgeErrors ?? 0) + 1;
+    pushHistory(state, "judge-error", reason);
+    if (state.judgeErrors >= JUDGE_ERROR_CAP) {
+      state.status = "stalled";
+      writeSessionState(sessionId, pushHistory(state, "stalled", `${state.judgeErrors} consecutive judge failures`));
+      note(
+        `goalkeeper: judge failed ${state.judgeErrors} times in a row (${reason}). Standing down ` +
+          `so the gate stops re-running — check /goalkeeper:status. Setting a new /goal resets it.`
+      );
+      return;
+    }
+    writeSessionState(sessionId, state);
+    note(
+      `goalkeeper: judge failed (${reason}); allowing stop. The gate stays active ` +
+        `(${state.judgeErrors}/${JUDGE_ERROR_CAP} before standing down).`
+    );
     return;
   }
 
   const verdict = parseVerdict(judge.lastMessage);
-  if (!verdict) {
-    writeSessionState(sessionId, pushHistory(state, "judge-error", "unparseable verdict"));
-    note("goalkeeper: judge returned an unexpected answer; allowing stop. The gate stays active.");
-    return;
-  }
-
   state.iterations += 1;
+  state.judgeErrors = 0;
   pushHistory(state, "verdict", `${verdict.kind}: ${verdict.detail}`);
 
   if (verdict.kind === "ACHIEVED") {
     state.status = "achieved";
     writeSessionState(sessionId, state);
     note(`goalkeeper: independently verified — ${verdict.detail}`);
+    // Block exactly once, to write the clearance token into the transcript. The
+    // built-in evaluator judges from transcript evidence only, so without this
+    // it would keep refusing a goal the repository already satisfies. The
+    // `achieved` status above makes this the last time the gate blocks.
+    block(buildVerifiedAnnouncement(goal.condition, verdict.detail));
     return;
   }
 

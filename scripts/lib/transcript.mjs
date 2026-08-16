@@ -1,18 +1,21 @@
 import fs from "node:fs";
 
+import { VERIFIED_MARK, VERIFIED_TOKEN } from "./reminder.mjs";
+
 const CLEAR_ALIASES = new Set(["clear", "stop", "off", "reset", "none", "cancel"]);
 
 // Scans the session transcript for built-in /goal activity and reduces it to
 // the current goal situation:
-//   { condition, setAt, userCleared, builtinMet, builtinReason }
-// condition is null when no goal was ever set. userCleared / builtinMet apply
-// to the most recent goal only.
+//   { condition, userCleared, builtinMet, builtinReason, verified }
+// condition is null when no goal was ever set. userCleared / builtinMet /
+// verified apply to the most recent goal only.
 export function readBuiltinGoal(transcriptPath) {
   const result = {
     condition: null,
     userCleared: false,
     builtinMet: false,
-    builtinReason: null
+    builtinReason: null,
+    verified: false
   };
 
   let raw;
@@ -23,6 +26,13 @@ export function readBuiltinGoal(transcriptPath) {
   }
 
   for (const line of raw.split("\n")) {
+    // The clearance stamp is emitted by this plugin, not by /goal, so it is
+    // matched before the `goal` fast-path filter below. Both halves are
+    // required: the protocol note names the token without granting it.
+    if (line.includes(VERIFIED_TOKEN) && line.includes(VERIFIED_MARK)) {
+      result.verified = true;
+      continue;
+    }
     if (!line.includes("goal")) {
       continue;
     }
@@ -36,7 +46,12 @@ export function readBuiltinGoal(transcriptPath) {
     const attachment = entry?.attachment;
     if (attachment?.type === "goal_status" && typeof attachment.condition === "string") {
       if (attachment.sentinel) {
-        // A new goal was set; it supersedes everything before it.
+        // A new goal was set; it supersedes everything before it. The built-in
+        // also writes a sentinel when it archives a goal it judged met, so a
+        // clearance is only discarded when the condition genuinely changed.
+        if (attachment.condition !== result.condition) {
+          result.verified = false;
+        }
         result.condition = attachment.condition;
         result.userCleared = false;
         result.builtinMet = false;

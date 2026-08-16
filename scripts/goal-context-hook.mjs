@@ -13,7 +13,7 @@ import process from "node:process";
 
 import { readConfig, readSessionState } from "./lib/state.mjs";
 import { readBuiltinGoal } from "./lib/transcript.mjs";
-import { buildGoalReminder } from "./lib/reminder.mjs";
+import { buildGoalReminder, buildProtocolNote } from "./lib/reminder.mjs";
 
 function readHookInput() {
   const raw = fs.readFileSync(0, "utf8").trim();
@@ -50,7 +50,7 @@ function main() {
   }
 
   const goal = readBuiltinGoal(transcriptPath);
-  if (!goal.condition || goal.userCleared) {
+  if (!goal.condition || goal.userCleared || goal.verified) {
     return;
   }
 
@@ -61,10 +61,16 @@ function main() {
     return;
   }
 
-  // Nothing to restore while the built-in command is still carrying the goal
-  // itself: it only goes quiet once it has judged the goal met.
   const tracking = state && state.condition === goal.condition ? state : null;
+
+  // While the built-in command is still carrying the goal itself there is
+  // nothing to restore — but the protocol note still has to be on the record.
+  // It is what keeps the built-in evaluator (transcript-only, and roughly an
+  // order of magnitude faster than the Codex judge) from declaring the goal met
+  // before the repository has actually been inspected. Protocol only here, so
+  // the goal is not restated twice in the same context.
   if (!goal.builtinMet && !tracking?.refinedCriteria && !lastVerdictDetail(tracking)) {
+    emit(buildProtocolNote(goal.condition));
     return;
   }
 

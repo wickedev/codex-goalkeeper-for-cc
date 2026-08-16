@@ -1,28 +1,13 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import process from "node:process";
 
 const STATE_ROOT = path.join(os.homedir(), ".claude", "goalkeeper");
-const LEGACY_STATE_ROOT = path.join(os.homedir(), ".claude", "codex-goal");
 const SESSIONS_DIR = path.join(STATE_ROOT, "sessions");
 const CONFIG_PATH = path.join(STATE_ROOT, "config.json");
 
 export const DEFAULT_MAX_ITERATIONS = 8;
-
-// One-shot migration from the pre-rename location. Best effort: if it fails the
-// gate just starts from a clean state, which is the same as a fresh install.
-function migrateLegacyState() {
-  try {
-    if (fs.existsSync(STATE_ROOT) || !fs.existsSync(LEGACY_STATE_ROOT)) {
-      return;
-    }
-    fs.renameSync(LEGACY_STATE_ROOT, STATE_ROOT);
-  } catch {
-    // ignore
-  }
-}
-
-migrateLegacyState();
 
 export function readConfig() {
   try {
@@ -36,6 +21,29 @@ export function readConfig() {
 export function writeConfig(config) {
   fs.mkdirSync(STATE_ROOT, { recursive: true });
   fs.writeFileSync(CONFIG_PATH, `${JSON.stringify(config, null, 2)}\n`);
+}
+
+// Which model judges, and how hard it thinks. Env beats config beats "let the
+// codex CLI decide", so a goal can be judged by a different model than the one
+// the user happens to have set in ~/.codex/config.toml — and pinning it here
+// means changing that file later does not silently change the verdicts.
+export function resolveJudge(config = readConfig()) {
+  const pick = (envVar, configured) => {
+    const fromEnv = process.env[envVar]?.trim();
+    if (fromEnv) {
+      return { value: fromEnv, source: `$${envVar}` };
+    }
+    if (configured) {
+      return { value: configured, source: "config" };
+    }
+    return { value: null, source: "codex default" };
+  };
+
+  return {
+    model: pick("GOALKEEPER_CODEX_MODEL", config.model),
+    effort: pick("GOALKEEPER_CODEX_EFFORT", config.effort),
+    sandbox: pick("GOALKEEPER_CODEX_SANDBOX", config.sandbox)
+  };
 }
 
 function sessionPath(sessionId) {
