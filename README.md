@@ -1,3 +1,5 @@
+![codex-goalkeeper](assets/banner.png)
+
 # codex-goalkeeper-for-cc
 
 Independent, repo-state verification for Claude Code's built-in `/goal` command, judged by
