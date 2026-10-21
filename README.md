@@ -5,16 +5,29 @@
 Independent, repo-state verification for Claude Code's built-in `/goal` command, judged by
 Codex.
 
+> `/goal` asks Haiku whether you're done. Haiku reads the chat. Goalkeeper has Codex read the
+> repo.
+
 You keep using the built-in `/goal` exactly as before. This plugin adds a Stop-hook gate that
-asks Codex — a different vendor's model with real repository access — to verify the goal
-against the actual state of the repo before the session is allowed to consider it achieved.
+asks Codex — a full-size model with real repository access — to verify the goal against the
+actual state of the repo before the session is allowed to consider it achieved.
 If the goal is too ambiguous to verify, the gate steers: it refines the goal into checkable
 acceptance criteria and hands them to Claude as the directive for the next turn.
 
 ## Why
 
-The built-in `/goal` evaluator (a small fast model) **cannot call tools**. It judges the
-condition purely from the conversation transcript, so it believes whatever Claude surfaced.
+The built-in `/goal` already knows Claude should not grade its own loop: it hands the exit
+decision to a separate evaluator — your configured small fast model, Haiku by default. A
+second model is the right instinct. Haiku, as wired, is not enough for it:
+
+- **It cannot look.** The evaluator does not call tools. It judges the condition purely from
+  the conversation transcript, so it believes whatever Claude surfaced.
+- **It is small.** In a controlled cross-model review experiment (150 planted errors, 900
+  review sessions), a lightweight reviewer from a different developer scored no higher than
+  the same model re-reviewing its own work in a fresh session
+  ([Song 2026](https://arxiv.org/abs/2610.01471)). Being a different model is not what helps;
+  being a capable one that looks is.
+
 Observed in practice — goal: *"a file named marker.txt exists containing exactly the word
 DONE"*, with the file deleted from disk:
 
@@ -25,7 +38,13 @@ DONE"*, with the file deleted from disk:
 
 Two other properties fall out of the design:
 
-- **No self-grading**: the model verifying the work is not the model that did the work.
+- **A second pair of eyes, not a second opinion of the transcript**: the judge is not the
+  model that did the work, and it checks the repository rather than Claude's account of it.
+  Different models also tend to catch different errors — cross-model reviewer pairs share
+  37–46% of their findings, against 52–62% for same-model sessions (Song 2026). That is
+  coverage, not a guarantee: strong models' errors stay correlated even across vendors
+  ([Kim et al. 2025](https://arxiv.org/abs/2506.07962)), which is why the gate leans on repo
+  evidence rather than on vendor diversity.
 - **Steering**: a goal the judge cannot verify as written gets rewritten into concrete
   criteria (`STEER` verdict) instead of looping forever on an unfalsifiable condition.
 
