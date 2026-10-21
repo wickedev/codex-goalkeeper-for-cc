@@ -4,5 +4,6 @@
   "description": "Goalkeeper for the built-in /goal: refines ambiguous goals into verifiable criteria, gates every stop with an independent Codex review of the actual repository state, and keeps a refuted goal in force until it is genuinely achieved.",
   "author": {
     "name": "Ryan"
-  }
+  },
+  "license": "MIT"
 }

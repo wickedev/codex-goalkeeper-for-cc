@@ -190,3 +190,7 @@ never advances the iteration counter, so the cap that is supposed to end the loo
   `GOALKEEPER_DEBUG_INPUT=/path/to/log` to append the raw payload and check what your version
   sends; an unrecognised shape is read as "no pending work", so the gate degrades to its old
   behaviour rather than going silent.
+
+## License
+
+[MIT](LICENSE)
