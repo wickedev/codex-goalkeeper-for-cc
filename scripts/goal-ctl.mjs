@@ -7,7 +7,6 @@
 //   goal-ctl.mjs model  [<model> | default]
 //   goal-ctl.mjs effort [<effort> | default]
 
-import process from "node:process";
 import { latestSessionState, readConfig, resolveJudge, writeConfig } from "./lib/state.mjs";
 import { KNOWN_MODELS, REASONING_EFFORTS } from "./lib/codex.mjs";
 

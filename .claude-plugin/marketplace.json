@@ -5,13 +5,13 @@
   },
   "metadata": {
     "description": "Codex-judged goalkeeper for Claude Code's built-in /goal: the repo is checked, not the chat.",
-    "version": "0.2.0"
+    "version": "0.2.1"
   },
   "plugins": [
     {
       "name": "goalkeeper",
       "description": "/goal's Haiku evaluator reads only the transcript. Goalkeeper makes Codex verify the repository before a goal counts as done, and steers ambiguous goals into checkable criteria.",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "author": {
         "name": "Ryan"
       },

@@ -9,14 +9,14 @@
 // Fails open like the Stop gate: any error just means no injected context.
 
 import fs from "node:fs";
-import process from "node:process";
+import { readStdinSync } from "./lib/stdin.mjs";
 
 import { readConfig, readSessionState } from "./lib/state.mjs";
 import { readBuiltinGoal } from "./lib/transcript.mjs";
 import { buildGoalReminder, buildProtocolNote } from "./lib/reminder.mjs";
 
 function readHookInput() {
-  const raw = fs.readFileSync(0, "utf8").trim();
+  const raw = readStdinSync().trim();
   return raw ? JSON.parse(raw) : {};
 }
 

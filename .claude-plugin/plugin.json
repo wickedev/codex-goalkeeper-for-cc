@@ -1,6 +1,6 @@
 {
   "name": "goalkeeper",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "The built-in /goal asks Haiku whether you're done, and Haiku only reads the chat. Goalkeeper has Codex check the actual repository before a goal counts as achieved, refines ambiguous goals into verifiable criteria, and keeps a refuted goal in force until it is genuinely met.",
   "author": {
     "name": "Ryan"
